@@ -109,7 +109,7 @@ for (const token of ['CreateJobVehicle', 'JobTruckReady', 'SetEntityAsMissionEnt
 }
 
 const nui = fs.readFileSync(path.join(root, 'client/nui.lua'), 'utf8');
-for (const token of ['SetTimeout', 'CancelHaul', 'startJob']) {
+for (const token of ['SetTimeout', 'startJob', 'RegisterNUICallback(\'ready\'']) {
   if (!nui.includes(token)) {
     console.error('nui.lua missing', token);
     failed += 1;
@@ -117,14 +117,14 @@ for (const token of ['SetTimeout', 'CancelHaul', 'startJob']) {
 }
 
 const clientMain = fs.readFileSync(path.join(root, 'client/main.lua'), 'utf8');
-if (!clientMain.includes('truckingcancel') && !clientMain.includes('CancelCommand')) {
-  console.error('client/main.lua missing cancel command');
+if (!clientMain.includes('CancelCommand') || !clientMain.includes('GetHq') || clientMain.includes('for i = 1, #Config.Depots do')) {
+  console.error('client/main.lua should spawn only HQ, not every depot');
   failed += 1;
 }
 
 const serverJobs = fs.readFileSync(path.join(root, 'server/jobs.lua'), 'utf8');
-if (!serverJobs.includes('notify_need_truck') || !serverJobs.includes('vehicleAtPoint')) {
-  console.error('server/jobs.lua missing vehicle load check');
+if (!serverJobs.includes('notify_need_truck') || !serverJobs.includes('vehicleAtPoint') || !serverJobs.includes('AbortUnspawned')) {
+  console.error('server/jobs.lua missing vehicle load check or AbortUnspawned');
   failed += 1;
 }
 
@@ -143,8 +143,14 @@ for (const token of ['notify_truck_gone', 'notify_cancel_prompt', 'textui_need_t
 }
 
 const config = fs.readFileSync(path.join(root, 'config.lua'), 'utf8');
-if (!config.includes('CancelCommand')) {
-  console.error('config missing CancelCommand');
+if (!config.includes('CancelCommand') || !config.includes('HqDepot')) {
+  console.error('config missing CancelCommand or HqDepot');
+  failed += 1;
+}
+
+const routes = fs.readFileSync(path.join(root, 'data/routes.lua'), 'utf8');
+if (!routes.includes('GetHq') || !routes.includes('office = true')) {
+  console.error('routes missing HQ office');
   failed += 1;
 }
 

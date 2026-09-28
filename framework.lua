@@ -188,7 +188,14 @@ function Framework.RemoveMoney(src, amount, reason, account)
     amount = math.floor(amount or 0)
     if amount <= 0 then return true end
     account = account or Config.Money.account or 'bank'
-    if Framework.GetMoney(src, account) < amount then return false end
+    if Framework.GetMoney(src, account) < amount then
+        local other = account == 'bank' and 'cash' or 'bank'
+        if Framework.GetMoney(src, other) >= amount then
+            account = other
+        else
+            return false
+        end
+    end
 
     if moneyMethod() == 'item' then
         return exports.ox_inventory:RemoveItem(src, Config.Money.item, amount) == true

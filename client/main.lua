@@ -1,7 +1,8 @@
 lib.locale()
 
-local depotPeds = {}
-local depotBlips = {}
+local officePed
+local officeBlip
+local officePoint
 local tabletOpen = false
 
 function Notify(key, nType, ...)
@@ -24,6 +25,12 @@ function SetTabletOpen(state)
     tabletOpen = state == true
 end
 
+function ReleaseTablet()
+    tabletOpen = false
+    SetNuiFocus(false, false)
+    SetNuiFocusKeepInput(false)
+end
+
 local function waitForInteract()
     if GetResourceState('interact') == 'started' then
         return true
@@ -31,13 +38,13 @@ local function waitForInteract()
     local started = pcall(function()
         lib.waitFor(function()
             return GetResourceState('interact') == 'started' or nil
-        end, 'interact resource is not started', 8000)
+        end, 'interact resource is not started', 2500)
     end)
     return started and GetResourceState('interact') == 'started'
 end
 
 local function addInteract(entity, depot)
-    local id = 'djfivem_trucking_' .. depot.id
+    local id = 'djfivem_trucking_hq'
     pcall(function()
         exports.interact:RemoveLocalEntityInteraction(entity, id)
     end)
@@ -60,12 +67,13 @@ local function addInteract(entity, depot)
 end
 
 local function addPoint(depot)
-    local point = lib.points.new({
+    if officePoint then return end
+    officePoint = lib.points.new({
         coords = depot.pos,
         distance = 24.0,
     })
 
-    function point:nearby()
+    function officePoint:nearby()
         if self.currentDistance <= Config.DepotDistance then
             if not IsTabletOpen() then
                 lib.showTextUI(locale('textui_depot'))
@@ -78,7 +86,7 @@ local function addPoint(depot)
         end
     end
 
-    function point:onExit()
+    function officePoint:onExit()
         if lib.isTextUIOpen() then
             lib.hideTextUI()
         end
@@ -92,40 +100,34 @@ local function keepPed(ped)
     SetBlockingOfNonTemporaryEvents(ped, true)
     FreezeEntityPosition(ped, true)
     SetPedDiesWhenInjured(ped, false)
-    SetPedCanRagdollFromPlayerImpact(ped, false)
     SetPedCanRagdoll(ped, false)
     SetPedFleeAttributes(ped, 0, false)
-    SetPedCombatAttributes(ped, 46, true)
-    SetEntityProofs(ped, true, true, true, true, true, true, true, true)
 end
 
-local function spawnDepot(depot, index)
+local function spawnOffice()
+    local depot = Config.GetHq()
+    if not depot then return end
+    if officePed and DoesEntityExist(officePed) then return end
+
     local model = joaat(Config.DepotPed.model)
     lib.requestModel(model)
-    -- Local script ped, script-host flag true so the engine does not
-    -- treat it as ambient population and despawn it.
+    if not HasModelLoaded(model) then return end
+
     local ped = CreatePed(0, model, depot.coords.x, depot.coords.y, depot.coords.z - 1.0, depot.coords.w, false, true)
     keepPed(ped)
     if Config.DepotPed.scenario then
         TaskStartScenarioInPlace(ped, Config.DepotPed.scenario, 0, true)
     end
     SetModelAsNoLongerNeeded(model)
+    officePed = ped
 
-    local hadPoint = depotPeds[index] and depotPeds[index].point
-    depotPeds[index] = { ped = ped, depot = depot, point = hadPoint }
-
-    local useInteract = Config.Target ~= 'ox' and waitForInteract()
-    if useInteract then
+    if Config.Target ~= 'ox' and waitForInteract() then
         addInteract(ped, depot)
-    end
-    -- Always keep an E fallback. If interact silently drops the option
-    -- (entity recycle), the clerk is still usable.
-    if not depotPeds[index].point then
+    else
         addPoint(depot)
-        depotPeds[index].point = true
     end
 
-    if Config.Blips.depot and not depotBlips[index] then
+    if Config.Blips.depot and not officeBlip then
         local blip = AddBlipForCoord(depot.coords.x, depot.coords.y, depot.coords.z)
         SetBlipSprite(blip, Config.Blips.depot.sprite)
         SetBlipColour(blip, Config.Blips.depot.color)
@@ -134,48 +136,40 @@ local function spawnDepot(depot, index)
         BeginTextCommandSetBlipName('STRING')
         AddTextComponentSubstringPlayerName(Config.Blips.depot.label)
         EndTextCommandSetBlipName(blip)
-        depotBlips[index] = blip
+        officeBlip = blip
     end
 end
 
 CreateThread(function()
-    for i = 1, #Config.Depots do
-        spawnDepot(Config.Depots[i], i)
-        Wait(0)
+    spawnOffice()
+end)
+
+CreateThread(function()
+    while true do
+        Wait(8000)
+        spawnOffice()
     end
 end)
 
 CreateThread(function()
     while true do
-        Wait(5000)
-        for i = 1, #Config.Depots do
-            local entry = depotPeds[i]
-            if not entry or not entry.ped or not DoesEntityExist(entry.ped) then
-                spawnDepot(Config.Depots[i], i)
-            end
+        if tabletOpen then
+            DisableControlAction(0, 200, true)
+            DisableControlAction(0, 199, true)
         end
+        Wait(0)
     end
 end)
 
-lib.addKeybind({
-    name = 'djfivem_trucking_tablet',
-    description = locale('keybind_tablet'),
-    defaultKey = Config.Command and '' or '',
-    onPressed = function()
-        -- depot-only tablet; command still works
-    end,
-})
-
 lib.addCommand(Config.Command, {
-    help = 'Open DJ Logistics if you are at a depot',
+    help = 'Open DJ Logistics at HQ',
 }, function()
+    local hq = Config.GetHq()
+    if not hq then return end
     local coords = GetEntityCoords(cache.ped)
-    for i = 1, #Config.Depots do
-        local depot = Config.Depots[i]
-        if #(coords - depot.pos) <= (Config.DepotDistance + 2.0) then
-            OpenTablet(depot)
-            return
-        end
+    if #(coords - hq.pos) <= (Config.DepotDistance + 2.0) then
+        OpenTablet(hq)
+        return
     end
     Notify('notify_too_far', 'error')
 end)
@@ -184,13 +178,12 @@ lib.addCommand(Config.CancelCommand, {
     help = 'Cancel the current DJ Logistics haul',
 }, function()
     if not IsOnDelivery() then
-        -- Server may still have a stuck job even if the client HUD is gone.
         lib.callback.await('djfivem_trucking:cancel', false)
         EndDelivery(true)
         Notify('notify_cancelled', 'inform')
         return
     end
-    CancelHaul(false)
+    CancelHaul(true)
 end)
 
 RegisterNetEvent('djfivem_trucking:notify', function(description, nType)
@@ -217,18 +210,12 @@ end)
 
 AddEventHandler('onResourceStop', function(resource)
     if resource ~= GetCurrentResourceName() then return end
-    for i = 1, #depotPeds do
-        local entry = depotPeds[i]
-        local ped = type(entry) == 'table' and entry.ped or entry
-        if ped and DoesEntityExist(ped) then
-            DeleteEntity(ped)
-        end
+    if officePed and DoesEntityExist(officePed) then
+        DeleteEntity(officePed)
     end
-    for i = 1, #depotBlips do
-        if depotBlips[i] then
-            RemoveBlip(depotBlips[i])
-        end
+    if officeBlip then
+        RemoveBlip(officeBlip)
     end
     lib.hideTextUI()
-    SetNuiFocus(false, false)
+    ReleaseTablet()
 end)

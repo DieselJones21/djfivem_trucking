@@ -1,8 +1,8 @@
 {
   "depot_open": "Open DJ Logistics",
   "textui_depot": "[E] DJ Logistics tablet",
-  "notify_too_far": "Walk back to the depot tablet.",
   "notify_busy": "Finish your current haul first.",
+  "notify_too_far": "Walk back to the DJ Logistics clerk at the Port of LS.",
   "notify_no_money": "You cannot afford that.",
   "notify_invalid": "That request was rejected.",
   "notify_level": "You need to be level %s for that.",
