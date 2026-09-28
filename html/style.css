@@ -392,9 +392,11 @@ input:focus-visible {
 .price { font-size: 18px; font-weight: 800; letter-spacing: -0.03em; }
 .price span { color: var(--muted); font-size: 12px; font-weight: 600; }
 .spawn {
+  display: block;
+  margin-top: 3px;
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 11px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   color: var(--accent-soft);
 }
 

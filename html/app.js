@@ -405,7 +405,10 @@ function renderFleet() {
         <p>${escapeHtml(truck.description)}</p>
         <div class="meta-row"><span>+${Math.round((truck.payout - 1) * 100)}% pay · ${escapeHtml((truck.cargo || []).join(', '))}</span></div>
         <div class="buy-row">
-          <span class="price">${money(truck.price)} <span class="spawn">${escapeHtml(truck.model || truck.id)}</span></span>
+          <div>
+            <div class="price">${money(truck.price)}</div>
+            <div class="spawn">${escapeHtml(truck.model || truck.id)}</div>
+          </div>
           <button class="btn" data-buy="${escapeHtml(truck.id)}" ${truck.locked ? 'disabled' : ''}>Buy</button>
         </div>
       </article>
