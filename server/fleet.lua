@@ -12,12 +12,41 @@ function Fleet.List(src)
     ) or {}
 end
 
+local function isStored(row)
+    if not row then return false end
+    local v = row.stored
+    return v == 1 or v == true or v == '1'
+end
+
+function Fleet.IsStored(row)
+    return isStored(row)
+end
+
 function Fleet.GetOwned(src, rowId)
     if not DB.Ready() then return nil end
+    rowId = tonumber(rowId)
+    if not rowId then return nil end
     return MySQL.single.await(
         'SELECT * FROM dj_trucking_trucks WHERE id = ? AND citizenid = ?',
         { rowId, Framework.GetCitizenId(src) }
     )
+end
+
+function Fleet.FirstCompatible(src, cargoId)
+    local owned = Fleet.List(src)
+    for i = 1, #owned do
+        local row = owned[i]
+        if isStored(row) then
+            local def = Config.GetTruck(row.truck_id)
+            if def then
+                for c = 1, #def.cargo do
+                    if def.cargo[c] == cargoId then
+                        return row, def
+                    end
+                end
+            end
+        end
+    end
 end
 
 function Fleet.Catalog(src)
@@ -100,7 +129,7 @@ end
 function Fleet.Sell(src, rowId)
     local row = Fleet.GetOwned(src, rowId)
     if not row then return nil, 'notify_invalid' end
-    if row.stored ~= 1 then return nil, 'notify_truck_out' end
+    if not Fleet.IsStored(row) then return nil, 'notify_truck_out' end
 
     local truck = Config.GetTruck(row.truck_id)
     local price = math.floor((truck and truck.price or 10000) * Config.Economy.sellDepreciation)

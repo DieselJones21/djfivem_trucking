@@ -4,6 +4,8 @@ Tebex-ready logistics career for **Qbox** (and QBCore / ESX). Players start on r
 
 The tablet UI matches the DJ FiveM fishing / hunting shell — chrome + red-orange instead of cyan or hunting red — and is branded with the DJ FiveM Scripts crown logo.
 
+There is **one clerk ped** on the map, at Port of Los Santos HQ. Every other yard is only a load / drop-off pad.
+
 ## Requirements
 
 | Resource | Required | Notes |
@@ -180,7 +182,7 @@ Only server gameplay logic needs to stay closed if you escrow this for Tebex. Ev
 
 ## Depots
 
-Port of LS, La Mesa, LSIA Cargo, El Burro, Sandy Airfield, Harmony, Grapeseed, Paleto Bay, Humane Labs gate, Zancudo staging. Walk up to the clipboard ped (or press **E** if `interact` is not started).
+**One clerk** at Port of Los Santos HQ opens the tablet (clipboard ped, or **E** if `interact` is not started). La Mesa, LSIA, Sandy, Paleto, and the other yards are delivery pads only — no extra peds.
 
 ## Performance
 

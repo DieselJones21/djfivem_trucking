@@ -150,11 +150,31 @@ function Jobs.Clear(src)
     offers[src] = nil
 end
 
-function Jobs.Generate(src, depotId, kind)
+function Jobs.AbortUnspawned(src)
+    local job = active[src]
+    if not job or job.host then return false end
+    if job.netId then return false end
+    if job.deposit and job.deposit > 0 then
+        Framework.AddMoney(src, job.deposit, 'trucking-spawn-refund')
+        job.deposit = 0
+    end
+    if job.party then
+        for i = 1, #(job.party.members or {}) do
+            active[job.party.members[i]] = nil
+        end
+    end
+    active[src] = nil
+    return true
+end
+
+function Jobs.Generate(src, depotId, kind, skipNear)
     kind = kind == 'freight' and 'freight' or 'quick'
-    if not nearDepot(src, depotId, 6.0) then
+    local hq = Config.GetHq()
+    depotId = hq and hq.id or depotId
+    if not skipNear and not nearDepot(src, depotId, 8.0) then
         return nil, 'notify_too_far'
     end
+    Jobs.AbortUnspawned(src)
     if active[src] then
         return nil, 'notify_busy'
     end
@@ -225,6 +245,7 @@ function Jobs.Generate(src, depotId, kind)
 end
 
 function Jobs.Start(src, offerId, truckRowId)
+    Jobs.AbortUnspawned(src)
     if active[src] then
         return nil, 'notify_busy'
     end
@@ -251,8 +272,11 @@ function Jobs.Start(src, offerId, truckRowId)
     local owned
     if offer.kind == 'freight' then
         owned = Fleet.GetOwned(src, truckRowId)
+        if not owned then
+            owned = Fleet.FirstCompatible(src, offer.cargo)
+        end
         if not owned then return nil, 'notify_no_truck' end
-        if owned.stored ~= 1 then return nil, 'notify_truck_out' end
+        if not Fleet.IsStored(owned) then return nil, 'notify_truck_out' end
         truckDef = Config.GetTruck(owned.truck_id)
         if not truckDef then return nil, 'notify_no_truck' end
         local okCargo = false

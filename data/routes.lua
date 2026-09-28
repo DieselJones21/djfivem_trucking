@@ -1,13 +1,16 @@
 ----------------------------------------------------------------
 -- Depots and haul lanes
--- Each depot has a ped, truck spawn, and trailer spawn.
--- Routes are generated between two different depots.
+-- ONE clerk ped exists, at Config.HqDepot (Port of LS).
+-- Every other entry is only a load / drop-off pad — no ped, no tablet.
 ----------------------------------------------------------------
+Config.HqDepot = Config.HqDepot or 'lsport'
+
 Config.Depots = {
     {
         id = 'lsport',
         label = 'Port of Los Santos',
-        subtitle = 'Terminal 4',
+        subtitle = 'DJ Logistics HQ',
+        office = true,
         coords = vec4(1200.42, -3114.18, 5.54, 0.4),
         truck = vec4(1182.16, -3098.55, 5.64, 356.0),
         trailer = vec4(1171.40, -3098.80, 5.64, 356.0),
@@ -105,6 +108,19 @@ end
 
 function Config.GetDepot(id)
     return Config.DepotsById[id]
+end
+
+function Config.GetHq()
+    return Config.GetDepot(Config.HqDepot) or Config.Depots[1]
+end
+
+function Config.IsHq(id)
+    local hq = Config.GetHq()
+    if not hq then return false end
+    if type(id) == 'table' then
+        return id.id == hq.id
+    end
+    return id == hq.id
 end
 
 function Config.RouteDistance(fromId, toId)

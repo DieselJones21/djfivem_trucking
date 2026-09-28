@@ -199,15 +199,25 @@ function toast(text) {
   toast._t = setTimeout(() => toastEl.classList.add('hidden'), 3200);
 }
 
+function failMessage(result) {
+  return (result && (result.message || result.error)) || 'That request was rejected.';
+}
+
+let actionBusy = false;
+
 function post(name, payload) {
   if (!inFiveM) {
     return Promise.resolve(previewAction(name, payload));
   }
+  const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+  const timer = setTimeout(() => { if (ctrl) ctrl.abort(); }, 8000);
   return fetch(`https://${resourceName}/${name}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json; charset=UTF-8' },
     body: JSON.stringify(payload || {}),
-  }).then((r) => r.json()).catch(() => ({ ok: false }));
+    signal: ctrl ? ctrl.signal : undefined,
+  }).then((r) => r.json()).catch(() => ({ ok: false, message: 'Request failed.' }))
+    .finally(() => clearTimeout(timer));
 }
 
 function previewAction(name, payload) {
@@ -341,6 +351,17 @@ function matchesQuery(text) {
 
 function renderJobs() {
   content.className = 'content';
+  if (state.data.activeJob) {
+    content.innerHTML = `
+      <article class="card">
+        <div class="card-head"><div class="icon">${ICONS.box}</div><span class="badge freight">Active</span></div>
+        <h3>Haul in progress</h3>
+        <p>${escapeHtml(state.data.activeJob.kind || 'job')} · ${escapeHtml(state.data.activeJob.cargo || '')}. Finish it or cancel here.</p>
+        <div class="buy-row"><span></span><button class="btn ghost" data-cancel-job="1">Cancel haul</button></div>
+      </article>
+    `;
+    return;
+  }
   if (state.tab === 'contracts') {
     const rows = (state.data.contracts || []).filter((c) => matchesQuery(c.cargo + c.dropoffLabel));
     if (!rows.length) {
@@ -694,7 +715,7 @@ async function loadOffers(kind) {
   const result = await post('offers', { kind });
   state.loadingOffers = false;
   state.offers = (result && result.offers) || [];
-  if (result && result.error) toast(result.error);
+  if (result && !result.ok) toast(failMessage(result));
   render();
 }
 
@@ -707,8 +728,14 @@ function openUi(data) {
   applyPlayer(data.player, data.brand, data.depot);
   app.classList.remove('hidden');
   app.setAttribute('aria-hidden', 'false');
-  if (inFiveM) loadOffers('quick');
-  else {
+  post('ready', {});
+  if (Array.isArray(data.offers)) {
+    state.offers = data.offers;
+    state.loadingOffers = false;
+    render();
+  } else if (inFiveM) {
+    loadOffers('quick');
+  } else {
     state.offers = DEMO.offers;
     render();
   }
@@ -717,6 +744,7 @@ function openUi(data) {
 function closeUi() {
   app.classList.add('hidden');
   app.setAttribute('aria-hidden', 'true');
+  actionBusy = false;
   post('close', {});
 }
 
@@ -766,10 +794,32 @@ search.addEventListener('input', () => {
 });
 
 content.addEventListener('click', async (event) => {
+  if (event.target.closest('[data-cancel-job]')) {
+    const result = await post('cancelJob', {});
+    if (result && result.ok) {
+      state.data.activeJob = null;
+      toast('Job cancelled.');
+      closeUi();
+    }
+    return;
+  }
   const start = event.target.closest('[data-start]');
   if (start) {
-    const result = await post('startJob', { offerId: start.dataset.start });
-    if (result && result.error) toast(result.error);
+    if (actionBusy) return;
+    actionBusy = true;
+    start.disabled = true;
+    const stored = (state.data.garage || []).find((row) => row.stored);
+    const result = await post('startJob', {
+      offerId: start.dataset.start,
+      truckId: stored && stored.id,
+    });
+    if (result && result.ok) {
+      closeUi();
+    } else {
+      actionBusy = false;
+      start.disabled = false;
+      toast(failMessage(result));
+    }
     return;
   }
   const buy = event.target.closest('[data-buy]');
@@ -781,7 +831,7 @@ content.addEventListener('click', async (event) => {
       mergePlayer(result.player);
       toast('Truck purchased.');
       render();
-    } else toast((result && result.error) || 'Could not buy.');
+    } else toast(failMessage(result) || 'Could not buy.');
     return;
   }
   const take = event.target.closest('[data-take]');
@@ -894,7 +944,7 @@ window.addEventListener('message', (event) => {
 });
 
 window.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && !app.classList.contains('hidden')) closeUi();
+  if (event.key === 'Escape') closeUi();
 });
 
 if (!inFiveM) {

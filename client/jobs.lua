@@ -65,6 +65,7 @@ function StartDelivery(job)
         lib.callback.await('djfivem_trucking:cancel', false)
         delivery = nil
         NuiCall('hud', { show = false })
+        Notify('notify_spawn_fail', 'error', job.truck and job.truck.model or 'truck')
         return
     end
 
@@ -90,11 +91,6 @@ function EndDelivery(deleteVehicles)
 end
 
 function CancelHaul(skipConfirm)
-    if not delivery then
-        lib.callback.await('djfivem_trucking:cancel', false)
-        EndDelivery(true)
-        return true
-    end
     if not skipConfirm then
         local confirm = lib.alertDialog({
             header = Config.Brand.title,

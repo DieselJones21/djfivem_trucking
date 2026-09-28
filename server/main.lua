@@ -11,65 +11,100 @@ local function packCoord(v)
     }
 end
 
+local function publicGarage(rows)
+    local list = {}
+    for i = 1, #(rows or {}) do
+        local r = rows[i]
+        list[#list + 1] = {
+            id = r.id,
+            truck_id = r.truck_id,
+            label = r.label,
+            plate = r.plate,
+            model = r.model,
+            body = r.body,
+            engine = r.engine,
+            mileage = r.mileage or 0,
+            stored = Fleet.IsStored(r),
+        }
+    end
+    return list
+end
+
 local function payload(src, depotId)
-    Profile.Load(src)
-    Company.TickOwner(src)
-    Company.CollectFees(src)
+    local ok, data = pcall(function()
+        Profile.Load(src)
+        pcall(Company.TickOwner, src)
+        pcall(Company.CollectFees, src)
 
-    local public = Profile.Public(src)
-    local catalog, owned = Fleet.Catalog(src)
-    local depot = Config.GetDepot(depotId)
+        Jobs.AbortUnspawned(src)
 
-    return {
-        ok = true,
-        player = public,
-        depot = depot and {
-            id = depot.id,
-            label = depot.label,
-            subtitle = depot.subtitle,
-        } or nil,
-        trucks = catalog,
-        garage = owned,
-        diagnostics = Fleet.Diagnostics(src),
-        skills = Config.Skills,
-        skillOrder = Config.SkillOrder,
-        certs = Config.Certs,
-        certOrder = Config.CertOrder,
-        cargo = Config.Cargo,
-        cargoOrder = Config.CargoOrder,
-        loans = {
-            products = Config.Loans.products,
-            active = Company.Loans(src),
-        },
-        employees = Company.Roster(src),
-        contracts = Company.DailyContracts(src),
-        party = Parties.Public(src),
-        nearby = Parties.Nearby(src),
-        history = Jobs.History(src, 10),
-        board = Jobs.Board(),
-        brand = Config.Brand,
-        job = Jobs.Get(src),
-    }
+        local public = Profile.Public(src)
+        local catalog, owned = Fleet.Catalog(src)
+        local depot = Config.GetDepot(depotId) or Config.GetHq()
+        local offers = Jobs.Generate(src, depot and depot.id, 'quick', true)
+        local job = Jobs.Get(src)
+
+        return {
+            ok = true,
+            player = public,
+            depot = depot and {
+                id = depot.id,
+                label = depot.label,
+                subtitle = depot.subtitle,
+            } or nil,
+            trucks = catalog,
+            garage = publicGarage(owned),
+            diagnostics = Fleet.Diagnostics(src),
+            skills = Config.Skills,
+            skillOrder = Config.SkillOrder,
+            certs = Config.Certs,
+            certOrder = Config.CertOrder,
+            cargo = Config.Cargo,
+            cargoOrder = Config.CargoOrder,
+            loans = {
+                products = Config.Loans.products,
+                active = Company.Loans(src),
+            },
+            employees = Company.Roster(src),
+            contracts = Company.DailyContracts(src),
+            party = Parties.Public(src),
+            nearby = Parties.Nearby(src),
+            history = Jobs.History(src, 10),
+            board = Jobs.Board(),
+            brand = Config.Brand,
+            offers = type(offers) == 'table' and offers or {},
+            activeJob = job and job.netId and {
+                cargo = job.cargo,
+                kind = job.kind,
+                stage = job.stage,
+            } or nil,
+        }
+    end)
+    if not ok then
+        return { ok = false, error = 'notify_invalid' }
+    end
+    return data
 end
 
 lib.callback.register('djfivem_trucking:open', function(source, depotId)
     if not Framework.RateLimit(source, 'open', 0.4) then
         return { ok = false, error = 'notify_invalid' }
     end
-    if depotId and not Config.GetDepot(depotId) then
+    local hq = Config.GetHq()
+    if not hq then
         return { ok = false, error = 'notify_invalid' }
     end
-    if depotId then
-        local depot = Config.GetDepot(depotId)
-        local ped = GetPlayerPed(source)
-        if ped and ped ~= 0 then
-            local coords = GetEntityCoords(ped)
-            if #(coords - depot.pos) > (Config.DepotDistance + 6.0) then
-                return { ok = false, error = 'notify_too_far' }
-            end
+    if depotId and not Config.IsHq(depotId) then
+        return { ok = false, error = 'notify_too_far' }
+    end
+    local ped = GetPlayerPed(source)
+    if ped and ped ~= 0 then
+        local coords = GetEntityCoords(ped)
+        if #(coords - hq.pos) > (Config.DepotDistance + 6.0) then
+            return { ok = false, error = 'notify_too_far' }
         end
     end
-    return payload(source, depotId)
+    return payload(source, hq.id)
 end)
 
 lib.callback.register('djfivem_trucking:offers', function(source, depotId, kind)
@@ -103,8 +138,19 @@ lib.callback.register('djfivem_trucking:startJob', function(source, offerId, tru
             dropoffLabel = dropoff and dropoff.label,
             pickupLoad = packCoord(pickup and pickup.load),
             dropoffLoad = packCoord(dropoff and dropoff.load),
-            truck = job.truck,
-            owned = job.owned,
+            truck = job.truck and {
+                id = job.truck.id,
+                model = job.truck.model,
+                label = job.truck.label,
+                trailer = job.truck.trailer == true,
+            } or nil,
+            owned = job.owned and {
+                id = job.owned.id,
+                model = job.owned.model,
+                plate = job.owned.plate,
+                body = job.owned.body,
+                engine = job.owned.engine,
+            } or nil,
             trailer = job.truck and job.truck.trailer and Config.Trailers[job.cargo] or nil,
             spawn = pickup and {
                 truck = packCoord(pickup.truck),
@@ -152,6 +198,9 @@ lib.callback.register('djfivem_trucking:complete', function(source, report)
 end)
 
 lib.callback.register('djfivem_trucking:cancel', function(source)
+    if Jobs.AbortUnspawned(source) then
+        return { ok = true, aborted = true }
+    end
     local result = Jobs.Fail(source, 'cancelled', Config.Economy.cancelPenalty)
     return { ok = true, result = result }
 end)
@@ -163,39 +212,45 @@ end)
 lib.callback.register('djfivem_trucking:buyTruck', function(source, truckId)
     local result, err = Fleet.Buy(source, truckId)
     if not result then return { ok = false, error = err } end
-    return { ok = true, result = result, player = Profile.Public(source), garage = Fleet.List(source), trucks = select(1, Fleet.Catalog(source)) }
+    return { ok = true, result = result, player = Profile.Public(source), garage = publicGarage(Fleet.List(source)), trucks = select(1, Fleet.Catalog(source)) }
 end)
 
 lib.callback.register('djfivem_trucking:sellTruck', function(source, rowId)
     local result, err = Fleet.Sell(source, rowId)
     if not result then return { ok = false, error = err } end
-    return { ok = true, result = result, player = Profile.Public(source), garage = Fleet.List(source), diagnostics = Fleet.Diagnostics(source) }
+    return { ok = true, result = result, player = Profile.Public(source), garage = publicGarage(Fleet.List(source)), diagnostics = Fleet.Diagnostics(source) }
 end)
 
 lib.callback.register('djfivem_trucking:repairTruck', function(source, rowId)
     local result, err = Fleet.Repair(source, rowId)
     if not result then return { ok = false, error = err } end
-    return { ok = true, result = result, player = Profile.Public(source), garage = Fleet.List(source), diagnostics = Fleet.Diagnostics(source) }
+    return { ok = true, result = result, player = Profile.Public(source), garage = publicGarage(Fleet.List(source)), diagnostics = Fleet.Diagnostics(source) }
 end)
 
 lib.callback.register('djfivem_trucking:takeTruck', function(source, rowId, depotId)
     local row = Fleet.GetOwned(source, rowId)
     if not row then return { ok = false, error = 'notify_invalid' } end
-    if row.stored ~= 1 then return { ok = false, error = 'notify_truck_out' } end
-    local depot = Config.GetDepot(depotId)
+    if not Fleet.IsStored(row) then return { ok = false, error = 'notify_truck_out' } end
+    local depot = Config.GetHq() or Config.GetDepot(depotId)
     if not depot then return { ok = false, error = 'notify_invalid' } end
     Fleet.SetStored(source, rowId, false)
     return {
         ok = true,
         spawn = packCoord(depot.truck),
         truck = Config.GetTruck(row.truck_id),
-        row = row,
+        row = {
+            id = row.id,
+            plate = row.plate,
+            body = row.body,
+            engine = row.engine,
+            model = row.model,
+        },
     }
 end)
 
 lib.callback.register('djfivem_trucking:storeTruck', function(source, rowId, body, engine, mileage)
     Fleet.ApplyReturn(source, rowId, body, engine, mileage)
-    return { ok = true, garage = Fleet.List(source), diagnostics = Fleet.Diagnostics(source) }
+    return { ok = true, garage = publicGarage(Fleet.List(source)), diagnostics = Fleet.Diagnostics(source) }
 end)
 
 lib.callback.register('djfivem_trucking:issuedKeys', function(source, netId, plate)

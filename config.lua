@@ -18,6 +18,8 @@ Config.Money = {
 Config.Debug = false
 Config.Command = 'trucking'
 Config.CancelCommand = 'truckingcancel'
+-- Only this depot spawns a clerk ped + tablet. Other yards are drop-off pads.
+Config.HqDepot = 'lsport'
 Config.AdminCommand = 'truckingadmin'
 Config.AdminAce = 'djfivem.trucking.admin'
 
