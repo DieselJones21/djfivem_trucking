@@ -1,6 +1,16 @@
 lib.locale()
 math.randomseed(os.time() % 2147483646)
 
+local function packCoord(v)
+    if not v then return nil end
+    return {
+        x = (v.x or v[1] or 0.0) + 0.0,
+        y = (v.y or v[2] or 0.0) + 0.0,
+        z = (v.z or v[3] or 0.0) + 0.0,
+        w = (v.w or v[4] or 0.0) + 0.0,
+    }
+end
+
 local function payload(src, depotId)
     Profile.Load(src)
     Company.TickOwner(src)
@@ -91,12 +101,15 @@ lib.callback.register('djfivem_trucking:startJob', function(source, offerId, tru
             dropoff = job.dropoff,
             pickupLabel = pickup and pickup.label,
             dropoffLabel = dropoff and dropoff.label,
-            pickupLoad = pickup and pickup.load,
-            dropoffLoad = dropoff and dropoff.load,
+            pickupLoad = packCoord(pickup and pickup.load),
+            dropoffLoad = packCoord(dropoff and dropoff.load),
             truck = job.truck,
             owned = job.owned,
             trailer = job.truck and job.truck.trailer and Config.Trailers[job.cargo] or nil,
-            spawn = pickup and { truck = pickup.truck, trailer = pickup.trailer } or nil,
+            spawn = pickup and {
+                truck = packCoord(pickup.truck),
+                trailer = packCoord(pickup.trailer),
+            } or nil,
             deposit = job.deposit,
             payout = job.payout,
             speedSoftCap = cargo and cargo.speedSoftCap or 0,
@@ -174,7 +187,7 @@ lib.callback.register('djfivem_trucking:takeTruck', function(source, rowId, depo
     Fleet.SetStored(source, rowId, false)
     return {
         ok = true,
-        spawn = depot.truck,
+        spawn = packCoord(depot.truck),
         truck = Config.GetTruck(row.truck_id),
         row = row,
     }

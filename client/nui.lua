@@ -1,7 +1,10 @@
 local currentDepot
 
 local function closeTablet()
-    if not IsTabletOpen() then return end
+    if not IsTabletOpen() then
+        SetNuiFocus(false, false)
+        return
+    end
     SetTabletOpen(false)
     currentDepot = nil
     SetNuiFocus(false, false)
@@ -11,7 +14,24 @@ end
 CloseTablet = closeTablet
 
 function OpenTablet(depot)
-    if IsTabletOpen() or IsOnDelivery() then return end
+    if IsTabletOpen() then
+        local focused = false
+        pcall(function()
+            focused = IsNuiFocused()
+        end)
+        if focused then
+            return
+        end
+        closeTablet()
+    end
+
+    if IsOnDelivery() then
+        Notify('notify_busy', 'inform')
+        if not CancelHaul(false) then
+            return
+        end
+    end
+
     local payload = lib.callback.await('djfivem_trucking:open', false, depot and depot.id)
     if not payload or not payload.ok then
         Notify(payload and payload.error or 'notify_too_far', 'error')
@@ -38,11 +58,17 @@ end)
 
 RegisterNUICallback('startJob', function(data, cb)
     local result = lib.callback.await('djfivem_trucking:startJob', false, data and data.offerId, data and data.truckId)
-    if result and result.ok then
-        closeTablet()
-        StartDelivery(result.job)
+    if not result or not result.ok then
+        cb(result or { ok = false })
+        return
     end
-    cb(result or { ok = false })
+    -- Return to NUI before spawning. Creating a networked vehicle inside
+    -- a NUI callback thread is what made the truck appear then vanish.
+    cb({ ok = true })
+    closeTablet()
+    SetTimeout(200, function()
+        StartDelivery(result.job)
+    end)
 end)
 
 RegisterNUICallback('buyTruck', function(data, cb)
@@ -60,11 +86,15 @@ end)
 RegisterNUICallback('takeTruck', function(data, cb)
     local depotId = currentDepot and currentDepot.id
     local result = lib.callback.await('djfivem_trucking:takeTruck', false, data and data.rowId, depotId)
-    if result and result.ok then
-        closeTablet()
-        SpawnOwnedTruck(result)
+    if not result or not result.ok then
+        cb(result or { ok = false })
+        return
     end
-    cb(result or { ok = false })
+    cb({ ok = true })
+    closeTablet()
+    SetTimeout(200, function()
+        SpawnOwnedTruck(result)
+    end)
 end)
 
 RegisterNUICallback('upgradeSkill', function(data, cb)
@@ -120,7 +150,6 @@ RegisterNUICallback('partyLeave', function(_, cb)
 end)
 
 RegisterNUICallback('cancelJob', function(_, cb)
-    local result = lib.callback.await('djfivem_trucking:cancel', false)
-    EndDelivery(true)
-    cb(result or { ok = true })
+    CancelHaul(true)
+    cb({ ok = true })
 end)

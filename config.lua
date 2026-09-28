@@ -17,6 +17,7 @@ Config.Money = {
 
 Config.Debug = false
 Config.Command = 'trucking'
+Config.CancelCommand = 'truckingcancel'
 Config.AdminCommand = 'truckingadmin'
 Config.AdminAce = 'djfivem.trucking.admin'
 

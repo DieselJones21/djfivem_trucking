@@ -28,6 +28,23 @@ local function nearPoint(src, point, range)
     return #(coords - pos) <= (range or Config.JobMarkerDistance)
 end
 
+local function jobVehicle(job)
+    if not job or not job.netId then return nil end
+    local veh = NetworkGetEntityFromNetworkId(job.netId)
+    if not veh or veh == 0 then return nil end
+    if DoesEntityExist and not DoesEntityExist(veh) then return nil end
+    return veh
+end
+
+local function vehicleAtPoint(job, point, range)
+    local veh = jobVehicle(job)
+    if not veh or not point then return false end
+    local coords = GetEntityCoords(veh)
+    if not coords then return false end
+    local pos = vec3(point.x, point.y, point.z)
+    return #(coords - pos) <= (range or (Config.LoadDistance + 8.0))
+end
+
 local function clockBonus(raining)
     local hour = tonumber(os.date('%H')) or 12
     local bonus = 0
@@ -350,9 +367,19 @@ function Jobs.Advance(src, stage)
 
     if stage == 'loaded' then
         if job.stage ~= 'pickup' then return nil, 'notify_invalid' end
+        if not job.netId then
+            return nil, 'notify_need_truck'
+        end
         local depot = Config.GetDepot(job.pickup)
-        if not nearPoint(src, depot and depot.load or depot and depot.pos, Config.LoadDistance + 8.0) then
+        local bay = depot and depot.load or depot and depot.pos
+        if not nearPoint(src, bay, Config.LoadDistance + 8.0) then
             return nil, 'notify_too_far'
+        end
+        -- If OneSync can see the truck, it must be in the bay. If the
+        -- handle is missing, the client JobTruckReady check is the gate.
+        local veh = jobVehicle(job)
+        if veh and not vehicleAtPoint(job, bay, Config.LoadDistance + 8.0) then
+            return nil, 'notify_need_truck'
         end
         job.stage = 'dropoff'
         return job
@@ -360,9 +387,17 @@ function Jobs.Advance(src, stage)
 
     if stage == 'delivered' then
         if job.stage ~= 'dropoff' then return nil, 'notify_invalid' end
+        if not job.netId then
+            return nil, 'notify_need_truck'
+        end
         local depot = Config.GetDepot(job.dropoff)
-        if not nearPoint(src, depot and depot.load or depot and depot.pos, Config.LoadDistance + 8.0) then
+        local bay = depot and depot.load or depot and depot.pos
+        if not nearPoint(src, bay, Config.LoadDistance + 8.0) then
             return nil, 'notify_too_far'
+        end
+        local veh = jobVehicle(job)
+        if veh and not vehicleAtPoint(job, bay, Config.LoadDistance + 8.0) then
+            return nil, 'notify_need_truck'
         end
         return Jobs.Complete(src)
     end
@@ -374,6 +409,21 @@ function Jobs.Complete(src)
     local job = active[src]
     if not job or job.host then
         return nil, 'notify_invalid'
+    end
+    if job.stage ~= 'dropoff' then
+        return nil, 'notify_invalid'
+    end
+    if not job.netId then
+        return nil, 'notify_need_truck'
+    end
+    local depot = Config.GetDepot(job.dropoff)
+    local bay = depot and depot.load or depot and depot.pos
+    if not nearPoint(src, bay, Config.LoadDistance + 8.0) then
+        return nil, 'notify_too_far'
+    end
+    local veh = jobVehicle(job)
+    if veh and not vehicleAtPoint(job, bay, Config.LoadDistance + 8.0) then
+        return nil, 'notify_need_truck'
     end
 
     local cargo = Config.GetCargo(job.cargo)
