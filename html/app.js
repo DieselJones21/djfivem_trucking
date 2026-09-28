@@ -148,14 +148,14 @@ const DEMO = {
   },
   skillOrder: ['hauler', 'caretaker', 'mechanic', 'endurance', 'convoy', 'broker', 'dispatcher', 'negotiator'],
   skills: {
-    hauler: { id: 'hauler', label: 'Heavy Hauler', description: '+4% job payout per rank.', max: 5 },
-    caretaker: { id: 'caretaker', label: 'Cargo Care', description: 'Integrity drops slower.', max: 5 },
-    mechanic: { id: 'mechanic', label: 'Yard Mechanic', description: 'Repair bills drop 8% per rank.', max: 5 },
-    endurance: { id: 'endurance', label: 'Long Haul', description: 'Fuel costs drop. Bonus XP on long routes.', max: 4 },
-    convoy: { id: 'convoy', label: 'Convoy Lead', description: '+5% party bonus per rank.', max: 4 },
-    broker: { id: 'broker', label: 'Freight Broker', description: 'Daily contracts pay more.', max: 4 },
-    dispatcher: { id: 'dispatcher', label: 'Dispatcher', description: 'NPC drivers earn +10% net.', max: 5 },
-    negotiator: { id: 'negotiator', label: 'Note Negotiator', description: 'Loan fees drop 8% per rank.', max: 3 },
+    hauler: { id: 'hauler', label: 'Heavy Hauler', description: '+4% job payout per rank.', max: 5, cost: [1, 1, 2, 2, 3] },
+    caretaker: { id: 'caretaker', label: 'Cargo Care', description: 'Integrity drops slower.', max: 5, cost: [1, 1, 2, 2, 3] },
+    mechanic: { id: 'mechanic', label: 'Yard Mechanic', description: 'Repair bills drop 8% per rank.', max: 5, cost: [1, 1, 2, 2, 3] },
+    endurance: { id: 'endurance', label: 'Long Haul', description: 'Fuel costs drop. Bonus XP on long routes.', max: 4, cost: [1, 2, 2, 3] },
+    convoy: { id: 'convoy', label: 'Convoy Lead', description: '+5% party bonus per rank.', max: 4, cost: [1, 2, 2, 3] },
+    broker: { id: 'broker', label: 'Freight Broker', description: 'Daily contracts pay more.', max: 4, cost: [1, 2, 2, 3] },
+    dispatcher: { id: 'dispatcher', label: 'Dispatcher', description: 'NPC drivers earn +10% net.', max: 5, cost: [1, 1, 2, 2, 3] },
+    negotiator: { id: 'negotiator', label: 'Note Negotiator', description: 'Loan fees drop 8% per rank.', max: 3, cost: [2, 2, 3] },
   },
   certOrder: ['general', 'food', 'machinery', 'chemicals', 'fuel', 'valuables'],
   certs: {
@@ -195,7 +195,7 @@ function toast(text) {
   toastEl.textContent = text;
   toastEl.classList.remove('hidden');
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => toastEl.classList.add('hidden'), 2600);
+  toast._t = setTimeout(() => toastEl.classList.add('hidden'), 3200);
 }
 
 function post(name, payload) {
@@ -211,26 +211,93 @@ function post(name, payload) {
 
 function previewAction(name, payload) {
   const data = state.data;
+  const player = data.player;
   if (name === 'offers') {
     const kind = payload.kind;
     return { ok: true, offers: DEMO.offers.filter((o) => o.kind === kind) };
   }
   if (name === 'startJob') {
-    toast('Preview: haul would start in-game.');
-    showHud({ show: true, cargo: 'General Freight', dest: 'Sandy Airfield', kind: 'quick', status: 'Pickup', integrity: 100 });
+    const offer = (data.offers || DEMO.offers).find((o) => o.id === payload.offerId) || DEMO.offers[0];
+    toast('Haul locked in — ' + offer.cargoLabel + ' to ' + offer.dropoffLabel + '.');
+    showHud({
+      show: true,
+      cargo: offer.cargoLabel,
+      dest: offer.pickupLabel,
+      kind: offer.kind,
+      status: 'Pickup',
+      integrity: 100,
+    });
     return { ok: true };
   }
   if (name === 'buyTruck') {
-    toast('Preview: truck purchased.');
-    return { ok: true, player: data.player, trucks: data.trucks, garage: data.garage };
+    const truck = (data.trucks || []).find((t) => t.id === payload.truckId);
+    if (truck && player.cash >= truck.price && !truck.locked) {
+      player.cash -= truck.price;
+      truck.owned = (truck.owned || 0) + 1;
+      data.garage = data.garage || [];
+      data.garage.unshift({
+        id: Date.now(),
+        truck_id: truck.id,
+        label: truck.label,
+        plate: 'DJ' + Math.floor(10000 + Math.random() * 89999),
+        model: truck.id,
+        mileage: 0,
+        stored: 1,
+      });
+      toast('Purchased ' + truck.label + ' for ' + money(truck.price) + '.');
+    } else {
+      toast('Need more cash or a higher level.');
+    }
+    return { ok: true, player: player, trucks: data.trucks, garage: data.garage };
   }
-  if (name === 'upgradeSkill' || name === 'unlockCert') {
-    toast('Preview: progression updated.');
-    return { ok: true, player: data.player };
+  if (name === 'upgradeSkill') {
+    const id = payload.skillId;
+    const skill = data.skills[id];
+    const rank = (player.skills[id] || 0);
+    const cost = (skill && skill.cost && skill.cost[rank]) || 1;
+    if (skill && rank < skill.max && player.skillPoints >= cost) {
+      player.skills[id] = rank + 1;
+      player.skillPoints -= cost;
+      toast(skill.label + ' is now rank ' + player.skills[id] + '.');
+    } else {
+      toast('Need a skill point for that.');
+    }
+    return { ok: true, player: player };
+  }
+  if (name === 'unlockCert') {
+    const cert = data.certs[payload.certId];
+    if (cert && player.level >= cert.level && !player.certs[payload.certId] && player.skillPoints >= (cert.cost || 0)) {
+      player.certs[payload.certId] = true;
+      player.skillPoints -= cert.cost || 0;
+      toast('Earned ' + cert.label + '.');
+    } else {
+      toast('Certification still locked.');
+    }
+    return { ok: true, player: player };
+  }
+  if (name === 'deposit') {
+    const amt = Math.max(50, Number(payload.amount) || 1000);
+    if (player.cash >= amt) {
+      player.cash -= amt;
+      player.balance += amt;
+      toast('Deposited ' + money(amt) + ' into the company account.');
+    } else {
+      toast('Not enough personal cash.');
+    }
+    return { ok: true, player: player };
+  }
+  if (name === 'withdraw') {
+    const amt = Math.max(50, Number(payload.amount) || 1000);
+    if (player.balance >= amt) {
+      player.balance -= amt;
+      player.cash += amt;
+      toast('Withdrew ' + money(amt) + ' from the company account.');
+    }
+    return { ok: true, player: player };
   }
   if (name === 'close') return { ok: true };
-  toast('Preview action: ' + name);
-  return { ok: true, player: data.player, employees: data.employees, loans: data.loans, party: data.party };
+  toast('Preview: ' + name.replace(/([A-Z])/g, ' $1').toLowerCase());
+  return { ok: true, player: player, employees: data.employees, loans: data.loans, party: data.party };
 }
 
 function applyPlayer(player, brand, depot) {
@@ -434,7 +501,7 @@ function renderSkills() {
         <p>${escapeHtml(skill.description)}</p>
         ${pips(rank, skill.max)}
         <div class="buy-row">
-          <span>${player.skillPoints} pts</span>
+          <span>${rank >= skill.max ? 'Maxed' : 'Next ' + ((skill.cost && skill.cost[rank]) || 1) + ' pt'}</span>
           <button class="btn" data-skill="${id}" ${rank >= skill.max ? 'disabled' : ''}>Upgrade</button>
         </div>
       </article>
