@@ -209,9 +209,9 @@ function Framework.RemoveMoney(src, amount, reason, account)
     if fw == 'qb' or fw == 'qbx' then
         local player = getQbPlayer(src)
         if not player then return false end
-        return player.Functions.RemoveMoney(account, amount, reason or 'djfivem-trucking') == true
-            or player.Functions.RemoveMoney(account, amount, reason or 'djfivem-trucking')
-            or true
+        local removed = player.Functions.RemoveMoney(account, amount, reason or 'djfivem-trucking')
+        if removed == false then return false end
+        return true
     end
 
     return exports.ox_inventory:RemoveItem(src, Config.Money.item, amount) == true

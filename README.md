@@ -2,7 +2,7 @@
 
 Tebex-ready logistics career for **Qbox** (and QBCore / ESX). Players start on rental **Quick Jobs**, bank money, buy a truck, then run **Freight Jobs** on their own iron. Progression, certifications, parties, NPC drivers, loans, damage, and Discord webhooks are all included.
 
-The tablet UI matches the DJ FiveM fishing / hunting shell — chrome + amber instead of cyan or red — and is branded with the DJ FiveM Scripts crown logo.
+The tablet UI matches the DJ FiveM fishing / hunting shell — chrome + red-orange instead of cyan or hunting red — and is branded with the DJ FiveM Scripts crown logo.
 
 ## Requirements
 
@@ -87,22 +87,18 @@ Rename, company bank, insurance, NPC drivers (simulated ticks — they do not wa
 
 ## Custom trucks (spawn codes)
 
-Edit `data/trucks.lua`. `model` **is** the spawn code.
+Your addon pack is already in `data/trucks.lua`. `model` **is** the spawn code. `_hi.yft` files are LODs, not extra vehicles. `brickades+.ytd` is a texture for `brickades`.
 
-```lua
-{
-    id = 'pete389',
-    model = 'pete389',   -- your streaming folder name
-    label = 'Peterbilt 389',
-    price = 285000,
-    rentable = false,
-    buyable = true,
-    level = 12,
-    payout = 1.55,
-    cargo = { 'general', 'machinery', 'chemicals', 'fuel', 'valuables' },
-    trailer = true,
-},
-```
+| Spawn | Role | Level |
+| --- | --- | --- |
+| `mule` / `benson` | Vanilla starter rentals (always stream) | 1 / 3 |
+| `linerunner` | Addon long-nose tractor | 4 |
+| `blacktop` | Addon heavy / plant | 6 |
+| `aerocab` | Addon sleeper, fuel lanes | 8 |
+| `vetirs` | Addon 6x6, no trailer | 10 |
+| `brickades` | Addon armored, high-value | 12 |
+
+Ensure the vehicle pack **before** this resource. If a spawn fails, the tablet tells you which code was missing.
 
 Trailer models live in `Config.Trailers` and are mapped per cargo class (`tanker`, `trailers2`, `tr2`, …).
 

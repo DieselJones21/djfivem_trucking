@@ -27,7 +27,7 @@
   "notify_repaired": "Repaired %s for $%s.",
   "notify_stored": "Truck stored in the yard.",
   "notify_spawned": "Your %s is in the yard. Keys issued.",
-  "notify_spawn_fail": "The truck could not be spawned. Check the spawn code.",
+  "notify_spawn_fail": "Could not spawn %s. Ensure the addon truck pack is started.",
   "notify_skill": "Unlocked %s rank %s.",
   "notify_cert_buy": "Earned certification: %s.",
   "notify_no_points": "You do not have enough skill points.",

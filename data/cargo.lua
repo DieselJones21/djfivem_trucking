@@ -65,7 +65,7 @@ Config.Cargo = {
         xpPerKm = 1.85,
         integrityLoss = 1.15,
         speedSoftCap = 85,
-        color = '#f5c14a',
+        color = '#ff4d1c',
         icon = 'fuel',
         level = 8,
     },

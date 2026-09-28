@@ -97,24 +97,25 @@ const DEMO = {
     maxLevel: 20,
   },
   trucks: [
-    { id: 'mule', label: 'Mule Box', description: 'Light rental box truck. Perfect first seat.', class: 'box', price: 18500, level: 1, locked: false, owned: 0, payout: 1.0, cargo: ['general', 'food'] },
-    { id: 'benson', label: 'Benson', description: 'Mid-size box for grocery and general freight.', class: 'box', price: 42000, level: 3, locked: false, owned: 0, payout: 1.12, cargo: ['general', 'food', 'machinery'] },
-    { id: 'phantom', label: 'Phantom', description: 'Day-cab tractor. Your first real freight investment.', class: 'heavy', price: 125000, level: 4, locked: false, owned: 1, payout: 1.32, cargo: ['general', 'food', 'machinery', 'chemicals'], trailer: true },
-    { id: 'hauler2', label: 'Hauler Custom', description: 'Highest standard freight multiplier.', class: 'heavy', price: 210000, level: 10, locked: true, owned: 0, payout: 1.48, cargo: ['general', 'machinery', 'fuel', 'valuables'], trailer: true },
-    { id: 'packer', label: 'Packer', description: 'Cab-over for tanker work.', class: 'tanker', price: 138000, level: 8, locked: false, owned: 0, payout: 1.38, cargo: ['chemicals', 'fuel'], trailer: true },
+    { id: 'mule', model: 'mule', label: 'Mule Box', description: 'Vanilla starter box. Always streams.', class: 'box', price: 18500, level: 1, locked: false, owned: 0, payout: 1.0, cargo: ['general', 'food'], addon: false },
+    { id: 'linerunner', model: 'linerunner', label: 'Linerunner', description: 'Addon long-nose. First real DJ freight tractor.', class: 'heavy', price: 135000, level: 4, locked: false, owned: 1, payout: 1.34, cargo: ['general', 'food', 'machinery', 'chemicals'], trailer: true, addon: true },
+    { id: 'blacktop', model: 'blacktop', label: 'Blacktop', description: 'Addon heavy. Plant, asphalt, and yard work.', class: 'heavy', price: 168000, level: 6, locked: false, owned: 0, payout: 1.40, cargo: ['general', 'machinery', 'chemicals'], trailer: true, addon: true },
+    { id: 'aerocab', model: 'aerocab', label: 'Aerocab', description: 'Addon sleeper cab. Long-haul and fuel lanes.', class: 'heavy', price: 195000, level: 8, locked: false, owned: 0, payout: 1.46, cargo: ['general', 'machinery', 'chemicals', 'fuel'], trailer: true, addon: true },
+    { id: 'vetirs', model: 'vetirs', label: 'Vetir', description: 'Addon 6x6. Off-road and hazmat.', class: 'offroad', price: 220000, level: 10, locked: true, owned: 0, payout: 1.42, cargo: ['machinery', 'chemicals', 'fuel'], addon: true },
+    { id: 'brickades', model: 'brickades', label: 'Brickade', description: 'Addon armored yard truck. High-value ready.', class: 'armored', price: 265000, level: 12, locked: true, owned: 0, payout: 1.55, cargo: ['machinery', 'fuel', 'valuables'], addon: true },
   ],
   garage: [
-    { id: 1, truck_id: 'phantom', label: 'Phantom', plate: 'DJ18420', model: 'phantom', body: 910, engine: 940, mileage: 428, stored: 1 },
+    { id: 1, truck_id: 'linerunner', label: 'Linerunner', plate: 'DJ18420', model: 'linerunner', body: 910, engine: 940, mileage: 428, stored: 1 },
   ],
   diagnostics: [
-    { id: 1, label: 'Phantom', plate: 'DJ18420', model: 'phantom', body: 91, engine: 94, health: 92, mileage: 428, stored: true, repair: 144 },
+    { id: 1, label: 'Linerunner', plate: 'DJ18420', model: 'linerunner', body: 91, engine: 94, health: 92, mileage: 428, stored: true, repair: 144 },
   ],
   offers: [
     { id: 'q1', kind: 'quick', cargo: 'general', cargoLabel: 'General Freight', pickupLabel: 'Port of Los Santos', dropoffLabel: 'Sandy Airfield', distance: 4200, payout: 1860, xp: 58, contract: false, truckHint: 'Mule Box' },
     { id: 'q2', kind: 'quick', cargo: 'food', cargoLabel: 'Refrigerated Food', pickupLabel: 'Port of Los Santos', dropoffLabel: 'Grapeseed Co-op', distance: 6100, payout: 2480, xp: 74, contract: true, truckHint: 'Benson' },
     { id: 'q3', kind: 'quick', cargo: 'machinery', cargoLabel: 'Machinery', pickupLabel: 'Port of Los Santos', dropoffLabel: 'Harmony Freight', distance: 3800, payout: 2210, xp: 66, contract: false, truckHint: 'Benson' },
-    { id: 'f1', kind: 'freight', cargo: 'chemicals', cargoLabel: 'Chemicals', pickupLabel: 'Port of Los Santos', dropoffLabel: 'Humane Labs Gate', distance: 7200, payout: 4120, xp: 110, contract: false, truckHint: 'Phantom' },
-    { id: 'f2', kind: 'freight', cargo: 'food', cargoLabel: 'Refrigerated Food', pickupLabel: 'Port of Los Santos', dropoffLabel: 'Paleto Bay Yard', distance: 9100, payout: 3640, xp: 98, contract: true, truckHint: 'Phantom' },
+    { id: 'f1', kind: 'freight', cargo: 'chemicals', cargoLabel: 'Chemicals', pickupLabel: 'Port of Los Santos', dropoffLabel: 'Humane Labs Gate', distance: 7200, payout: 4120, xp: 110, contract: false, truckHint: 'Linerunner' },
+    { id: 'f2', kind: 'freight', cargo: 'food', cargoLabel: 'Refrigerated Food', pickupLabel: 'Port of Los Santos', dropoffLabel: 'Paleto Bay Yard', distance: 9100, payout: 3640, xp: 98, contract: true, truckHint: 'Aerocab' },
   ],
   contracts: [
     { id: 'c-1-sandy', cargo: 'food', dropoff: 'sandy', dropoffLabel: 'Sandy Airfield', bonus: 36, done: false },
@@ -393,18 +394,18 @@ function renderJobs() {
 function renderFleet() {
   content.className = 'content';
   if (state.tab === 'dealership') {
-    const rows = (state.data.trucks || []).filter((t) => matchesQuery(t.label + t.description));
+    const rows = (state.data.trucks || []).filter((t) => matchesQuery(t.label + t.description + (t.model || '')));
     content.innerHTML = rows.map((truck) => `
       <article class="card">
         <div class="card-head">
           <div class="icon">${ICONS.truck}</div>
-          <span class="badge ${truck.locked ? 'locked' : 'freight'}">${truck.locked ? 'Lv ' + truck.level : truck.class}</span>
+          <span class="badge ${truck.locked ? 'locked' : truck.addon ? 'addon' : 'freight'}">${truck.locked ? 'Lv ' + truck.level : truck.addon ? 'Addon' : truck.class}</span>
         </div>
         <h3>${escapeHtml(truck.label)}</h3>
         <p>${escapeHtml(truck.description)}</p>
-        <div class="meta-row"><span>x${(truck.payout * 100 - 100).toFixed(0)}% pay · ${escapeHtml((truck.cargo || []).join(', '))}</span></div>
+        <div class="meta-row"><span>+${Math.round((truck.payout - 1) * 100)}% pay · ${escapeHtml((truck.cargo || []).join(', '))}</span></div>
         <div class="buy-row">
-          <span class="price">${money(truck.price)}</span>
+          <span class="price">${money(truck.price)} <span class="spawn">${escapeHtml(truck.model || truck.id)}</span></span>
           <button class="btn" data-buy="${escapeHtml(truck.id)}" ${truck.locked ? 'disabled' : ''}>Buy</button>
         </div>
       </article>
@@ -438,7 +439,7 @@ function renderFleet() {
 
   const rows = (state.data.garage || []).filter((t) => matchesQuery(t.label + t.plate));
   if (!rows.length) {
-    content.innerHTML = emptyState('Empty garage', 'Start on quick jobs, bank the money, then buy a Phantom.');
+    content.innerHTML = emptyState('Empty garage', 'Start on quick jobs, bank the money, then buy a Linerunner.');
     return;
   }
   content.innerHTML = rows.map((row) => `

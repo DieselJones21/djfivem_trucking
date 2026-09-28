@@ -45,6 +45,7 @@ function Fleet.Catalog(src)
                 payout = truck.payout,
                 cargo = truck.cargo,
                 trailer = truck.trailer == true,
+                addon = truck.addon == true,
             }
         end
     end

@@ -112,6 +112,7 @@ local function reportIntegrity()
             integrity = delivery.integrity,
             body = body,
             engine = engine,
+            raining = (GetRainLevel and GetRainLevel() or 0) > 0.15,
         })
         hud(delivery.stage == 'pickup' and locale('hud_pickup') or locale('hud_dropoff'))
     end
@@ -123,7 +124,7 @@ CreateThread(function()
             reportIntegrity()
             local dest = pointOf(delivery, delivery.stage)
             if dest and atPoint(dest, Config.JobMarkerDistance) then
-                DrawMarker(1, dest.x, dest.y, dest.z - 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.0, 4.0, 0.8, 245, 193, 74, 140, false, false, 2, false, nil, nil, false)
+                DrawMarker(1, dest.x, dest.y, dest.z - 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.0, 4.0, 0.8, 255, 77, 28, 140, false, false, 2, false, nil, nil, false)
                 if atPoint(dest, Config.LoadDistance) then
                     lib.showTextUI(delivery.stage == 'pickup' and '[E] Load cargo' or '[E] Unload cargo')
                     if IsControlJustReleased(0, 38) then
@@ -148,6 +149,7 @@ CreateThread(function()
                                     body = body,
                                     engine = engine,
                                     mileage = math.floor((delivery.distance or 0) / 1000),
+                                    raining = (GetRainLevel and GetRainLevel() or 0) > 0.15,
                                 })
                                 if result and result.ok and result.result then
                                     local pay = result.result

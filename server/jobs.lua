@@ -28,11 +28,14 @@ local function nearPoint(src, point, range)
     return #(coords - pos) <= (range or Config.JobMarkerDistance)
 end
 
-local function clockBonus()
+local function clockBonus(raining)
     local hour = tonumber(os.date('%H')) or 12
     local bonus = 0
     if hour >= 21 or hour < 5 then
         bonus = bonus + Config.Economy.nightBonus
+    end
+    if raining then
+        bonus = bonus + (Config.Economy.rainBonus or 0)
     end
     return bonus
 end
@@ -335,6 +338,7 @@ function Jobs.Report(src, payload)
     if payload.body then job.body = tonumber(payload.body) end
     if payload.engine then job.engine = tonumber(payload.engine) end
     if payload.mileage then job.mileage = tonumber(payload.mileage) end
+    if payload.raining then job.raining = true end
 end
 
 function Jobs.Advance(src, stage)
@@ -382,7 +386,7 @@ function Jobs.Complete(src)
     local pay = (cargo and cargo.payPerKm or 40) * km * truckPay
     pay = pay * (job.kind == 'freight' and Config.Economy.freightJobPay or Config.Economy.quickJobPay)
     pay = pay * skillPayout(src)
-    pay = pay * (1.0 + clockBonus())
+    pay = pay * (1.0 + clockBonus(job.raining))
     if job.contract then
         pay = pay * (1.0 + Config.Contracts.bonusPay + skillContract(src))
     end

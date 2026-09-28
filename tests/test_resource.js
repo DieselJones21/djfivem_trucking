@@ -51,7 +51,7 @@ for (const id of ['app', 'nav', 'tabs', 'stats', 'content', 'hud', 'toast', 'sho
 }
 
 const css = fs.readFileSync(path.join(root, 'html/style.css'), 'utf8');
-for (const token of ['--accent: #f5c14a', 'brand/logo.png', '.nav-btn.active', '.hud']) {
+for (const token of ['--accent: #ff4d1c', 'brand/logo.png', '.nav-btn.active', '.hud', '--grad']) {
   if (!css.includes(token)) {
     console.error('css missing', token);
     failed += 1;
@@ -67,7 +67,7 @@ for (const token of ['jobs', 'fleet', 'skills', 'company', 'crew', 'stats', 'DEM
 }
 
 const trucks = fs.readFileSync(path.join(root, 'data/trucks.lua'), 'utf8');
-for (const model of ['mule', 'benson', 'phantom', 'hauler', 'packer']) {
+for (const model of ['mule', 'linerunner', 'aerocab', 'blacktop', 'brickades', 'vetirs']) {
   if (!trucks.includes(`model = '${model}'`)) {
     console.error('truck spawn missing', model);
     failed += 1;

@@ -56,7 +56,7 @@ function SpawnJobRig(job)
     local model = job.owned and job.owned.model or job.truck.model
     local truck = createVehicle(model, spawn.truck)
     if not truck then
-        Notify('notify_spawn_fail', 'error')
+        Notify('notify_spawn_fail', 'error', model)
         return nil
     end
 
@@ -93,7 +93,7 @@ function SpawnOwnedTruck(payload)
     if not payload or not payload.spawn then return end
     local truck = createVehicle(payload.truck.model, payload.spawn)
     if not truck then
-        Notify('notify_spawn_fail', 'error')
+        Notify('notify_spawn_fail', 'error', payload.truck.model)
         return
     end
     SetVehicleNumberPlateText(truck, payload.row.plate)

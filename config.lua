@@ -177,7 +177,7 @@ Config.Party = {
 Config.Webhooks = {
     enabled = true,
     username = 'DJ Logistics',
-    color = 16042186, -- chrome amber
+    color = 16731932, -- red-orange #ff4d1c
     jobs = '',
     fleet = '',
     company = '',
@@ -197,7 +197,7 @@ Config.Fuel = {
 -- Blips
 ----------------------------------------------------------------
 Config.Blips = {
-    depot = { sprite = 477, color = 46, scale = 0.78, label = 'DJ Logistics' },
+    depot = { sprite = 477, color = 17, scale = 0.78, label = 'DJ Logistics' },
     pickup = { sprite = 478, color = 5, scale = 0.85, label = 'Pickup' },
     dropoff = { sprite = 473, color = 2, scale = 0.85, label = 'Drop-off' },
 }
