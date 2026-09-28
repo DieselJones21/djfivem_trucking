@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DJ Logistics</title>
+  <style>html,body{background:transparent!important;background-color:transparent!important;}</style>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="hud" class="hud hidden" aria-hidden="true">
+    <div class="hud-brand">
+      <img src="brand/logo.png" alt="" width="54" height="36" decoding="async" draggable="false" />
+      <div>
+        <strong id="hud-cargo">General Freight</strong>
+        <small id="hud-dest">Port of Los Santos</small>
+      </div>
+    </div>
+    <div class="hud-meta">
+      <span id="hud-kind">QUICK</span>
+      <span id="hud-status">Pickup</span>
+    </div>
+    <div class="hud-bar"><i id="hud-integrity"></i></div>
+    <div class="hud-foot">Cargo integrity <b id="hud-integrity-label">100%</b></div>
+  </div>
+
+  <div id="app" class="hidden" aria-hidden="true">
+    <div class="shell">
+      <div class="orb orb-a"></div>
+      <div class="orb orb-b"></div>
+      <div class="orb orb-c"></div>
+
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-logo" src="brand/logo.png" alt="DJ FiveM Scripts" width="160" height="107" decoding="async" draggable="false" />
+          <div>
+            <strong id="shop-title">DJ Logistics</strong>
+            <small id="shop-subtitle">Los Santos freight desk</small>
+          </div>
+        </div>
+
+        <nav class="nav" id="nav" aria-label="Tablet sections"></nav>
+
+        <div class="profile">
+          <div class="profile-copy">
+            <strong id="player-name">Driver</strong>
+            <span id="player-role">Contract driver</span>
+          </div>
+          <div class="avatar" id="player-avatar">DJ</div>
+        </div>
+      </header>
+
+      <section class="stats" id="stats"></section>
+
+      <div class="toolbar">
+        <div class="tabs" id="tabs"></div>
+        <label class="search" id="search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16.5 16.5 21 21"/></svg>
+          <input id="search" type="text" placeholder="Search jobs, trucks, certs..." autocomplete="off" spellcheck="false" maxlength="64" aria-label="Search" />
+        </label>
+      </div>
+
+      <main class="content" id="content"></main>
+
+      <footer class="footer">
+        <span class="footer-brand">
+          <img src="brand/logo.png" alt="" width="42" height="28" decoding="async" draggable="false" />
+          DJ FIVEM SCRIPTS
+        </span>
+        <span class="keychip">ESC Close</span>
+      </footer>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
