@@ -19,9 +19,9 @@ shared_scripts {
 
 client_scripts {
     'client/main.lua',
-    'client/nui.lua',
-    'client/jobs.lua',
     'client/vehicles.lua',
+    'client/jobs.lua',
+    'client/nui.lua',
 }
 
 server_scripts {

@@ -92,6 +92,62 @@ if (!manifest.includes('ox_lib') || !manifest.includes('oxmysql')) {
   failed += 1;
 }
 
+const jobs = fs.readFileSync(path.join(root, 'client/jobs.lua'), 'utf8');
+for (const token of ['JobTruckReady', 'CancelHaul', 'notify_need_truck']) {
+  if (!jobs.includes(token)) {
+    console.error('jobs.lua missing', token);
+    failed += 1;
+  }
+}
+
+const vehicles = fs.readFileSync(path.join(root, 'client/vehicles.lua'), 'utf8');
+for (const token of ['CreateJobVehicle', 'JobTruckReady', 'SetEntityAsMissionEntity', 'netMissionEntity']) {
+  if (!vehicles.includes(token)) {
+    console.error('vehicles.lua missing', token);
+    failed += 1;
+  }
+}
+
+const nui = fs.readFileSync(path.join(root, 'client/nui.lua'), 'utf8');
+for (const token of ['SetTimeout', 'CancelHaul', 'startJob']) {
+  if (!nui.includes(token)) {
+    console.error('nui.lua missing', token);
+    failed += 1;
+  }
+}
+
+const clientMain = fs.readFileSync(path.join(root, 'client/main.lua'), 'utf8');
+if (!clientMain.includes('truckingcancel') && !clientMain.includes('CancelCommand')) {
+  console.error('client/main.lua missing cancel command');
+  failed += 1;
+}
+
+const serverJobs = fs.readFileSync(path.join(root, 'server/jobs.lua'), 'utf8');
+if (!serverJobs.includes('notify_need_truck') || !serverJobs.includes('vehicleAtPoint')) {
+  console.error('server/jobs.lua missing vehicle load check');
+  failed += 1;
+}
+
+const serverMain = fs.readFileSync(path.join(root, 'server/main.lua'), 'utf8');
+if (!serverMain.includes('packCoord')) {
+  console.error('server/main.lua missing packCoord');
+  failed += 1;
+}
+
+const locales = fs.readFileSync(path.join(root, 'locales/en.json'), 'utf8');
+for (const token of ['notify_truck_gone', 'notify_cancel_prompt', 'textui_need_truck']) {
+  if (!locales.includes(token)) {
+    console.error('locales missing', token);
+    failed += 1;
+  }
+}
+
+const config = fs.readFileSync(path.join(root, 'config.lua'), 'utf8');
+if (!config.includes('CancelCommand')) {
+  console.error('config missing CancelCommand');
+  failed += 1;
+}
+
 if (failed) {
   console.error(`FAILED ${failed} checks`);
   process.exit(1);

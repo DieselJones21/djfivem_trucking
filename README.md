@@ -143,6 +143,7 @@ Do **not** edit payouts on the client. Every dollar and XP tick is server-author
 | Command | Who | What |
 | --- | --- | --- |
 | `/trucking` | Players at a depot | Open the tablet |
+| `/truckingcancel` | Players on a haul | Cancel the current job (penalty). Use this if the truck vanishes and the clerk looks unresponsive. |
 | `/truckingadmin givexp [id] [amount]` | ACE `djfivem.trucking.admin` | Grant XP |
 | `/truckingadmin setxp [id] [amount]` | Admin | Set XP |
 | `/truckingadmin reset [id]` | Admin | Wipe that character's trucking data |

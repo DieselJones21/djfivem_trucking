@@ -38,6 +38,9 @@ end
 
 local function addInteract(entity, depot)
     local id = 'djfivem_trucking_' .. depot.id
+    pcall(function()
+        exports.interact:RemoveLocalEntityInteraction(entity, id)
+    end)
     exports.interact:AddLocalEntityInteraction({
         entity = entity,
         id = id,
@@ -82,25 +85,47 @@ local function addPoint(depot)
     end
 end
 
-local function spawnDepot(depot)
-    local model = joaat(Config.DepotPed.model)
-    lib.requestModel(model)
-    local ped = CreatePed(0, model, depot.coords.x, depot.coords.y, depot.coords.z - 1.0, depot.coords.w, false, false)
+local function keepPed(ped)
+    if not ped or ped == 0 or not DoesEntityExist(ped) then return end
+    SetEntityAsMissionEntity(ped, true, true)
     SetEntityInvincible(ped, true)
     SetBlockingOfNonTemporaryEvents(ped, true)
     FreezeEntityPosition(ped, true)
+    SetPedDiesWhenInjured(ped, false)
+    SetPedCanRagdollFromPlayerImpact(ped, false)
+    SetPedCanRagdoll(ped, false)
+    SetPedFleeAttributes(ped, 0, false)
+    SetPedCombatAttributes(ped, 46, true)
+    SetEntityProofs(ped, true, true, true, true, true, true, true, true)
+end
+
+local function spawnDepot(depot, index)
+    local model = joaat(Config.DepotPed.model)
+    lib.requestModel(model)
+    -- Local script ped, script-host flag true so the engine does not
+    -- treat it as ambient population and despawn it.
+    local ped = CreatePed(0, model, depot.coords.x, depot.coords.y, depot.coords.z - 1.0, depot.coords.w, false, true)
+    keepPed(ped)
     if Config.DepotPed.scenario then
         TaskStartScenarioInPlace(ped, Config.DepotPed.scenario, 0, true)
     end
-    depotPeds[#depotPeds + 1] = ped
+    SetModelAsNoLongerNeeded(model)
 
-    if Config.Target ~= 'ox' and waitForInteract() then
+    local hadPoint = depotPeds[index] and depotPeds[index].point
+    depotPeds[index] = { ped = ped, depot = depot, point = hadPoint }
+
+    local useInteract = Config.Target ~= 'ox' and waitForInteract()
+    if useInteract then
         addInteract(ped, depot)
-    else
+    end
+    -- Always keep an E fallback. If interact silently drops the option
+    -- (entity recycle), the clerk is still usable.
+    if not depotPeds[index].point then
         addPoint(depot)
+        depotPeds[index].point = true
     end
 
-    if Config.Blips.depot then
+    if Config.Blips.depot and not depotBlips[index] then
         local blip = AddBlipForCoord(depot.coords.x, depot.coords.y, depot.coords.z)
         SetBlipSprite(blip, Config.Blips.depot.sprite)
         SetBlipColour(blip, Config.Blips.depot.color)
@@ -109,14 +134,26 @@ local function spawnDepot(depot)
         BeginTextCommandSetBlipName('STRING')
         AddTextComponentSubstringPlayerName(Config.Blips.depot.label)
         EndTextCommandSetBlipName(blip)
-        depotBlips[#depotBlips + 1] = blip
+        depotBlips[index] = blip
     end
 end
 
 CreateThread(function()
     for i = 1, #Config.Depots do
-        spawnDepot(Config.Depots[i])
+        spawnDepot(Config.Depots[i], i)
         Wait(0)
+    end
+end)
+
+CreateThread(function()
+    while true do
+        Wait(5000)
+        for i = 1, #Config.Depots do
+            local entry = depotPeds[i]
+            if not entry or not entry.ped or not DoesEntityExist(entry.ped) then
+                spawnDepot(Config.Depots[i], i)
+            end
+        end
     end
 end)
 
@@ -141,6 +178,19 @@ lib.addCommand(Config.Command, {
         end
     end
     Notify('notify_too_far', 'error')
+end)
+
+lib.addCommand(Config.CancelCommand, {
+    help = 'Cancel the current DJ Logistics haul',
+}, function()
+    if not IsOnDelivery() then
+        -- Server may still have a stuck job even if the client HUD is gone.
+        lib.callback.await('djfivem_trucking:cancel', false)
+        EndDelivery(true)
+        Notify('notify_cancelled', 'inform')
+        return
+    end
+    CancelHaul(false)
 end)
 
 RegisterNetEvent('djfivem_trucking:notify', function(description, nType)
@@ -168,12 +218,16 @@ end)
 AddEventHandler('onResourceStop', function(resource)
     if resource ~= GetCurrentResourceName() then return end
     for i = 1, #depotPeds do
-        if DoesEntityExist(depotPeds[i]) then
-            DeleteEntity(depotPeds[i])
+        local entry = depotPeds[i]
+        local ped = type(entry) == 'table' and entry.ped or entry
+        if ped and DoesEntityExist(ped) then
+            DeleteEntity(ped)
         end
     end
     for i = 1, #depotBlips do
-        RemoveBlip(depotBlips[i])
+        if depotBlips[i] then
+            RemoveBlip(depotBlips[i])
+        end
     end
     lib.hideTextUI()
     SetNuiFocus(false, false)
